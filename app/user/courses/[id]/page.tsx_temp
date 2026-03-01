@@ -1,0 +1,88 @@
+function CourseContentList({ materials, modules, isEnrolled, courseId }: any) {
+    if (!materials || materials.length === 0) {
+        return (
+             <div className="p-8 text-center text-slate-500">
+                <p className="font-medium">Content is being updated.</p>
+            </div>
+        );
+    }
+
+    const videoTutorials = materials.filter((m: any) => m.type === "video");
+    const allResources = materials.filter((m: any) => m.type === "pdf" || m.type === "note");
+
+    const resourcesByVideo = videoTutorials.reduce((acc: any, video: any) => {
+        acc[video._id] = allResources.filter((r: any) => r.videoId === video._id);
+        return acc;
+    }, {} as Record<string, any>);
+
+    const contentByModule = modules && modules.length > 0
+        ? modules.map((module: any) => ({
+            ...module,
+            videos: videoTutorials.filter((v: any) => v.moduleId === module._id)
+        })).filter((m: any) => m.videos.length > 0)
+        : [{ _id: "general", title: "Course Content", videos: videoTutorials }];
+
+    return (
+        <div className="divide-y divide-slate-100">
+            {contentByModule.map((section: any, sectionIdx: number) => (
+                <div key={section._id} className="group">
+                    {/* Section Header */}
+                    <div className="bg-slate-50 p-4 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <ChevronDown className="w-4 h-4 text-slate-600" />
+                            <span className="text-slate-900 font-bold text-sm">
+                                {section._id === "general" ? section.title : `Section ${sectionIdx + 1}: ${section.title}`}
+                            </span>
+                        </div>
+                        <span className="text-xs text-slate-500">{section.videos.length} lectures</span>
+                    </div>
+
+                    {/* Videos in Section */}
+                    <div className="bg-white px-4 py-2 space-y-2">
+                        {section.videos.map((video: any) => {
+                            const resources = resourcesByVideo[video._id] || [];
+                            const canWatch = isEnrolled;
+
+                            return (
+                                <div key={video._id} className="py-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <Play className={cn("w-4 h-4", canWatch ? "text-slate-800" : "text-slate-400")} />
+                                            <a
+                                                href={canWatch ? `/user/courses/${courseId}/learn` : undefined}
+                                                className={cn("text-sm transition-colors", canWatch ? "text-primary hover:underline cursor-pointer font-medium" : "text-slate-500 cursor-default")}
+                                            >
+                                                {video.title}
+                                            </a>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            {!canWatch && <Lock className="w-3.5 h-3.5 text-slate-400" />}
+                                            <span className="text-xs text-slate-400">{video.duration}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Resources */}
+                                    {resources.map((res: any) => (
+                                        <div key={res._id} className="flex items-center justify-between pl-7 mt-1">
+                                            <div className="flex items-center gap-3">
+                                                <FileText className="w-3.5 h-3.5 text-slate-400" />
+                                                <span className="text-xs text-slate-500">{res.title}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Resource</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+export default function CourseDetailsPage() {
+    const params = useParams();
+    // ... rest of component
