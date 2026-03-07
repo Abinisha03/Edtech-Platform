@@ -46,13 +46,18 @@ export const submitReview = mutation({
         const userId = identity.subject;
 
         // Check if user is enrolled
-        const enrollment = await ctx.db
+        const courseEnrollments = await ctx.db
             .query("enrollments")
             .withIndex("by_courseId", (q) => q.eq("courseId", args.courseId))
-            .filter((q) => q.eq(q.field("userId"), userId))
-            .first();
+            .collect();
 
-        if (!enrollment) {
+        const isEnrolled = courseEnrollments.some(e =>
+            e.userId === identity.subject ||
+            e.userId === identity.tokenIdentifier ||
+            (identity.email && e.email === identity.email)
+        );
+
+        if (!isEnrolled) {
             throw new Error("Only enrolled users can submit reviews");
         }
 
