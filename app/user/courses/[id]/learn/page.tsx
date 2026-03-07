@@ -104,6 +104,8 @@ export default function CourseLearnPage() {
     const videoTutorials = materials.filter((m: any) => m.type === "video");
     const allResources = materials.filter((m: any) => m.type === "pdf" || m.type === "note");
 
+    const isLastVideo = videoTutorials.length > 0 && currentVideoId === videoTutorials[videoTutorials.length - 1]._id;
+
     const resourcesByVideo = videoTutorials.reduce((acc: any, video: any) => {
         // Aggregate resources by module if videoId link isn't explicit, or correct linking
         // For now, assuming resources are linked by moduleId or videoId. 
@@ -317,6 +319,23 @@ export default function CourseLearnPage() {
                                             <p className="text-sm text-gray-500">English (US)</p>
                                         </div>
                                     </div>
+
+                                    {isLastVideo && (
+                                        <div className="mt-8 p-10 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100/50 rounded-2xl flex flex-col items-center justify-center text-center shadow-inner">
+                                            <div className="w-20 h-20 bg-white shadow-sm text-yellow-500 rounded-full flex items-center justify-center mb-5 rotate-12 transition-transform hover:rotate-0 duration-300">
+                                                <Star className="w-10 h-10 fill-current" />
+                                            </div>
+                                            <h3 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">You've reached the end! 🎉</h3>
+                                            <p className="text-gray-600 mb-8 max-w-md text-base leading-relaxed">Congratulations on completing the video lessons. Please take a moment to rate this course and leave your feedback below.</p>
+                                            <Button
+                                                className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold py-6 px-10 shadow-lg shadow-emerald-500/20 border-none text-lg rounded-full transition-transform hover:scale-105 active:scale-95"
+                                                onClick={() => setIsFeedbackModalOpen(true)}
+                                            >
+                                                <Star className="w-5 h-5 mr-3 fill-current" />
+                                                Finish Course & Rate
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -452,16 +471,6 @@ export default function CourseLearnPage() {
                                     </div>
                                 </div>
                             ))}
-                            <div className="p-4 border-t border-gray-100 bg-gray-50/50 mt-4">
-                                <Button
-                                    className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold py-6 shadow-md border-none"
-                                    onClick={() => setIsFeedbackModalOpen(true)}
-                                >
-                                    <Star className="w-5 h-5 mr-2 fill-current" />
-                                    Finish Course & Rate
-                                </Button>
-                                <p className="text-center text-xs text-gray-500 mt-3 font-medium">Leave feedback to help others</p>
-                            </div>
                         </div>
                     </ScrollArea>
                 </div>
