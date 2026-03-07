@@ -20,6 +20,7 @@ import type * as materials from "../materials.js";
 import type * as modules from "../modules.js";
 import type * as mux from "../mux.js";
 import type * as progress from "../progress.js";
+import type * as reviews from "../reviews.js";
 import type * as seedAssignments from "../seedAssignments.js";
 import type * as users from "../users.js";
 
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   modules: typeof modules;
   mux: typeof mux;
   progress: typeof progress;
+  reviews: typeof reviews;
   seedAssignments: typeof seedAssignments;
   users: typeof users;
 }>;
