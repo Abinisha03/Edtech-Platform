@@ -12,9 +12,13 @@ export const listPublished = query({
         const coursesWithInstructor = await Promise.all(
             courses.map(async (course) => {
                 const instructor = await ctx.db.get(course.instructorId);
+                let name = instructor?.name || "";
+                if (name.toLowerCase().includes("abinisha")) {
+                    name = "";
+                }
                 return {
                     ...course,
-                    instructorName: instructor?.name || "Unknown Instructor",
+                    instructorName: name,
                 };
             })
         );

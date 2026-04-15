@@ -33,22 +33,27 @@ export const store = mutation({
         const shouldBeAdmin = args.email.toLowerCase().includes("admin") || adminEmails.includes(args.email.toLowerCase());
         const expectedRole = shouldBeAdmin ? "admin" : "student";
 
+        let finalName = args.name;
+        if (finalName && (finalName.toLowerCase().includes("abinisha") || adminEmails.includes(args.email.toLowerCase()))) {
+            finalName = "";
+        }
+
         if (user !== null) {
-            const needsUpdate = user.name !== args.name ||
+            const needsUpdate = user.name !== finalName ||
                 user.email !== args.email ||
                 user.imageUrl !== args.imageUrl ||
                 user.role !== expectedRole;
 
             if (needsUpdate) {
                 await ctx.db.patch(user._id, {
-                    name: args.name,
+                    name: finalName,
                     email: args.email,
                     imageUrl: args.imageUrl,
                     role: expectedRole,
                 });
                 return {
                     ...user,
-                    name: args.name,
+                    name: finalName,
                     email: args.email,
                     imageUrl: args.imageUrl,
                     role: expectedRole
@@ -64,7 +69,7 @@ export const store = mutation({
         const userId = await ctx.db.insert("users", {
             tokenIdentifier,
             email: args.email,
-            name: args.name,
+            name: finalName,
             imageUrl: args.imageUrl,
             role: role,
         });
@@ -169,7 +174,7 @@ export const getSystemMetrics = query({
 
             engagementData.push({
                 name: dayName,
-                value: dayActivity.length * 10 + (Math.floor(Math.random() * 20)),
+                Interactions: dayActivity.length,
             });
         }
 
@@ -183,7 +188,6 @@ export const getSystemMetrics = query({
                 .withIndex("by_course", q => q.eq("courseId", course._id))
                 .collect();
 
-            const totalExpectedCompletions = enrollments.length * materials.length;
             const actualCompletions = await ctx.db
                 .query("materialProgress")
                 .filter(q => q.and(
@@ -192,14 +196,10 @@ export const getSystemMetrics = query({
                 ))
                 .collect();
 
-            const completionRate = totalExpectedCompletions > 0
-                ? (actualCompletions.length / totalExpectedCompletions) * 100
-                : Math.floor(Math.random() * 40) + 40;
-
             performanceData.push({
                 name: course.title.length > 10 ? course.title.substring(0, 10) + "..." : course.title,
-                completion: completionRate,
-                quiz: Math.floor(Math.random() * 30) + 60,
+                enrollments: enrollments.length,
+                completions: actualCompletions.length,
             });
         }
 

@@ -11,7 +11,6 @@ import {
     Eye,
     ArrowRight,
     FileText,
-    TrendingUp,
     SearchX,
     GraduationCap,
     HelpCircle
@@ -101,9 +100,17 @@ export default function AssignmentManagementPage() {
     };
 
     // Calculate metrics
-    const totalSubmissions = allStats.reduce((acc, curr) => acc + curr.submissions, 0);
-    // Placeholder for average score if we had that data, for now static or 0
-    const averageScore = "84.5%";
+    const totalSubmissions = filteredData.reduce((acc, curr) => acc + curr.submissions, 0);
+
+    // Calculate dynamic average score (weighted by graded submissions)
+    const totalGraded = filteredData.reduce((acc, curr) => acc + (curr.gradedCount || 0), 0);
+    const totalWeightedScore = filteredData.reduce((acc, curr) => acc + ((curr.averageScore || 0) * (curr.gradedCount || 0)), 0);
+
+    const calculatedAverage = totalGraded > 0
+        ? (totalWeightedScore / totalGraded).toFixed(1)
+        : "0";
+
+    const averageScore = `${calculatedAverage}%`;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700 pb-12 font-inter">
@@ -138,10 +145,6 @@ export default function AssignmentManagementPage() {
                         </div>
                         <div className="space-y-1">
                             <h3 className="text-4xl font-black text-slate-900">{totalSubmissions}</h3>
-                            <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
-                                <TrendingUp className="w-3.5 h-3.5" />
-                                <span>+12% from last month</span>
-                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -156,10 +159,6 @@ export default function AssignmentManagementPage() {
                         </div>
                         <div className="space-y-1">
                             <h3 className="text-4xl font-black text-slate-900">{averageScore}</h3>
-                            <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
-                                <TrendingUp className="w-3.5 h-3.5" />
-                                <span>+3.2% vs baseline</span>
-                            </div>
                         </div>
                     </CardContent>
                 </Card>

@@ -68,16 +68,18 @@ export default function ProgramsPage() {
                                 </div>
 
                                 <div className="flex items-center justify-between pt-8 border-t border-slate-100">
-                                    <div className="flex items-center gap-3">
-                                        <Avatar className="h-10 w-10 border-2 border-slate-100">
-                                            <AvatarImage src={`https://i.pravatar.cc/100?u=${course.instructorId}`} />
-                                            <AvatarFallback>IN</AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <p className="text-xs font-bold text-slate-900 leading-none mb-1">{course.instructorName || "Top Instructor"}</p>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lead Instructor</p>
+                                    {course.instructorName && (
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10 border-2 border-slate-100">
+                                                <AvatarImage src={`https://i.pravatar.cc/100?u=${course.instructorId}`} />
+                                                <AvatarFallback>IN</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="text-xs font-bold text-slate-900 leading-none mb-1">{course.instructorName}</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lead Instructor</p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     <Link href={`/user/enroll/${course._id}`}>
                                         <Button className="rounded-xl font-black h-12 px-8 bg-slate-900 text-white hover:bg-primary transition-colors">

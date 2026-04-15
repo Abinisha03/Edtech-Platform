@@ -149,11 +149,18 @@ export const get = query({
                     .withIndex("by_courseId", (q) => q.eq("courseId", assignment.courseId))
                     .collect();
 
+                const gradedSubmissions = submissions.filter(s => s.grade !== undefined);
+                const averageScore = gradedSubmissions.length > 0
+                    ? gradedSubmissions.reduce((acc, curr) => acc + (curr.grade || 0), 0) / gradedSubmissions.length
+                    : 0;
+
                 return {
                     ...assignment,
                     course: course ? course.title : "Unknown Course",
                     submissions: submissions.length,
-                    maxSubmissions: enrollments.length || 0, // Fallback if no enrollments
+                    maxSubmissions: enrollments.length || 0,
+                    averageScore,
+                    gradedCount: gradedSubmissions.length,
                 };
             })
         );

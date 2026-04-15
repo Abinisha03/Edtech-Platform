@@ -44,7 +44,7 @@ export function StudentSidebar({ isOpen, setIsOpen }: StudentSidebarProps) {
 
     return (
         <aside className={cn(
-            "fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-100 z-50 transition-all duration-300 flex flex-col",
+            "fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-100 z-50 transition-all duration-300 flex flex-col overflow-y-auto",
             isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}>
             <div className="p-8 pb-4 flex items-center justify-between">
@@ -65,7 +65,7 @@ export function StudentSidebar({ isOpen, setIsOpen }: StudentSidebarProps) {
                 </button>
             </div>
 
-            <nav className="mt-6 px-4 flex-1 space-y-1">
+            <nav className="mt-6 px-4 flex-1 space-y-1 overflow-y-auto">
                 {menuItems.map((item) => {
                     const isActive = pathname === item.href;
                     return (

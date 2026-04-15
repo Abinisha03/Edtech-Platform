@@ -18,11 +18,11 @@ export default function AdminLayout({
 }) {
     const router = useRouter();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const { isLoaded, orgRole } = useAuth();
+    const { isLoaded } = useAuth();
     const user = useQuery(api.users.currentUser);
 
-    // Combined role check
-    const isActuallyAdmin = orgRole === "org:admin" && user?.role === "admin";
+    // Role is managed in Convex DB — check only Convex role
+    const isActuallyAdmin = user?.role === "admin";
     const isWaiting = !isLoaded || user === undefined;
 
     useEffect(() => {

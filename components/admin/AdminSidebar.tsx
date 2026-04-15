@@ -45,7 +45,7 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
 
     return (
         <aside className={cn(
-            "fixed left-0 top-0 h-full w-64 bg-card border-r border-border z-50 transition-all duration-300 flex flex-col",
+            "fixed left-0 top-0 h-full w-64 bg-card border-r border-border z-50 transition-all duration-300 flex flex-col overflow-y-auto",
             isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}>
             <div className="p-6 pb-2 flex items-center justify-between">

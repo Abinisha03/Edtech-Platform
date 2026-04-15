@@ -4,12 +4,14 @@ import Link from "next/link";
 import { Search, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserButton } from "@clerk/nextjs";
+import { useUser, UserButton } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 
 export const UserNavbar = () => {
     const pathname = usePathname();
+    const user = useQuery(api.users.currentUser);
 
     const navItems = [
         { label: "Courses", href: "/user/explorer" },
@@ -42,6 +44,13 @@ export const UserNavbar = () => {
                 </div>
 
                 <div className="flex items-center gap-2 md:gap-4">
+                    {user?.role === "admin" && (
+                        <Link href="/admin/dashboard">
+                            <Button variant="outline" size="sm" className="hidden sm:inline-flex border-primary/20 text-primary hover:bg-primary/5 hover:text-primary rounded-full px-4 h-9 font-bold text-xs">
+                                Admin Dashboard
+                            </Button>
+                        </Link>
+                    )}
                     <UserButton afterSignOutUrl="/" />
                 </div>
             </div>

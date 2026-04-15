@@ -141,15 +141,7 @@ export default function CourseLearnPage() {
         const uncategorizedResources = allResources.filter(r => !r.moduleId || !modules.some(m => m._id === r.moduleId));
         const uncategorizedAssignments = assignments.filter(a => !a.moduleId || !modules.some(m => m._id === a.moduleId));
 
-        if (uncategorizedVideos.length > 0 || uncategorizedResources.length > 0 || uncategorizedAssignments.length > 0) {
-            grouped.push({
-                _id: "general",
-                title: "General Content",
-                videos: uncategorizedVideos,
-                resources: uncategorizedResources,
-                assignments: uncategorizedAssignments
-            });
-        }
+        // Removed General Content section 3 as requested
 
         return grouped;
     })();
@@ -318,6 +310,30 @@ export default function CourseLearnPage() {
                                             <div className="font-semibold text-gray-900 mb-1">Language</div>
                                             <p className="text-sm text-gray-500">English (US)</p>
                                         </div>
+{/* Assignments List */}
+{assignments && assignments.length > 0 && (
+<div className="col-span-1 md:col-span-3 mt-2">
+  <h3 className="text-lg font-bold text-gray-900 mb-3">Course Assignments</h3>
+  <ul className="space-y-3">
+    {assignments.map((task:any, idx:number)=>(
+      <li key={task._id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <ListChecks className="w-5 h-5" />
+            </div>
+            <div>
+                <p className="font-semibold text-gray-900">{task.title}</p>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-0.5">{task.type || "Assignment"}</p>
+            </div>
+        </div>
+        <Button size="sm" asChild className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Link href={`/user/assignments/${task._id}`}>Start Now</Link>
+        </Button>
+      </li>
+    ))}
+  </ul>
+</div>
+)}
                                     </div>
 
                                     {isLastVideo && (
@@ -345,14 +361,14 @@ export default function CourseLearnPage() {
                 {/* Right: Sidebar Navigation */}
                 {/* Desktop: Always visible, pushes content. Mobile: Absolute overlay */}
                 <div
-                    className={cn(
-                        "fixed inset-y-0 right-0 z-40 w-80 bg-white border-l border-gray-200 transform transition-transform duration-300 ease-in-out md:static md:translate-x-0 flex flex-col",
-                        sidebarOpen ? "translate-x-0 shadow-2xl md:shadow-none" : "translate-x-full md:hidden"
-                    )}
-                >
+    className={cn(
+        "fixed inset-y-0 left-0 z-40 w-80 bg-white border-r border-gray-200 overflow-y-auto rounded-r-lg transform transition-transform duration-300 ease-in-out md:static md:-translate-x-0 flex flex-col",
+        sidebarOpen ? "translate-x-0 shadow-2xl md:shadow-none" : "-translate-x-full md:hidden"
+    )}
+>
                     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-5 shrink-0">
                         <h3 className="font-bold text-gray-900 text-lg">Course Content</h3>
-                        <Button variant="ghost" size="icon" className="md:hidden text-gray-500" onClick={() => setSidebarOpen(false)}>
+                        <Button variant="ghost" size="icon" className="md:hidden text-gray-500" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
                             <X className="w-5 h-5" />
                         </Button>
                     </div>
@@ -377,9 +393,14 @@ export default function CourseLearnPage() {
                                                         {section.resources.length} Docs
                                                     </span>
                                                 )}
-                                                {section.assignments.length > 0 && (
+                                                {section.assignments.filter((a: any) => a.type !== 'quiz').length > 0 && (
                                                     <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                                                        {section.assignments.length} Task
+                                                        {section.assignments.filter((a: any) => a.type !== 'quiz').length} Task
+                                                    </span>
+                                                )}
+                                                {section.assignments.filter((a: any) => a.type === 'quiz').length > 0 && (
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+                                                        {section.assignments.filter((a: any) => a.type === 'quiz').length} Quiz
                                                     </span>
                                                 )}
                                             </div>
@@ -449,23 +470,44 @@ export default function CourseLearnPage() {
                                         ))}
 
                                         {/* Assignments */}
-                                        {section.assignments.map((assign: any) => (
+                                        {section.assignments.filter((a: any) => a.type !== 'quiz').map((assign: any) => (
                                             <Link
                                                 key={assign._id}
                                                 href={`/user/assignments/${assign._id}`}
                                                 className="flex items-center gap-3 p-4 hover:bg-emerald-50/50 transition-all group w-full bg-emerald-50/5"
                                             >
                                                 <div className="w-5 h-5 flex items-center justify-center shrink-0 text-emerald-500">
-                                                    {assign.type === 'quiz' ? <ListChecks className="w-4 h-4" /> : <File className="w-4 h-4" />}
+                                                    <File className="w-4 h-4" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium text-gray-700 truncate group-hover:text-emerald-600">{assign.title}</p>
                                                     <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase font-bold mt-0.5">
-                                                        <span className="text-emerald-500">{assign.type}</span>
+                                                        <span className="text-emerald-500">{assign.type || "Assignment"}</span>
                                                         {assign.dueDate && <span>• Due {new Date(assign.dueDate).toLocaleDateString()}</span>}
                                                     </div>
                                                 </div>
                                                 <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500" />
+                                            </Link>
+                                        ))}
+
+                                        {/* Quizzes */}
+                                        {section.assignments.filter((a: any) => a.type === 'quiz').map((assign: any) => (
+                                            <Link
+                                                key={assign._id}
+                                                href={`/user/quizzes/${assign._id}`}
+                                                className="flex items-center gap-3 p-4 hover:bg-purple-50/50 transition-all group w-full bg-purple-50/5"
+                                            >
+                                                <div className="w-5 h-5 flex items-center justify-center shrink-0 text-purple-500">
+                                                    <ListChecks className="w-4 h-4" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-700 truncate group-hover:text-purple-600">{assign.title}</p>
+                                                    <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase font-bold mt-0.5">
+                                                        <span className="text-purple-500">Quiz</span>
+                                                        {assign.dueDate && <span>• Due {new Date(assign.dueDate).toLocaleDateString()}</span>}
+                                                    </div>
+                                                </div>
+                                                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-purple-500" />
                                             </Link>
                                         ))}
                                     </div>

@@ -13,8 +13,6 @@ import {
     UserX,
     ChevronLeft,
     ChevronRight,
-    TrendingUp,
-    TrendingDown,
     DollarSign,
     Clock,
     X,
@@ -133,22 +131,16 @@ export default function UserManagementPage() {
                 <MetricCard
                     title="TOTAL STUDENTS"
                     value={stats?.totalStudents?.toString() || "0"}
-                    change="+5.2%"
-                    isPositive={true}
                     icon={Users}
                 />
                 <MetricCard
                     title="TOTAL REVENUE"
                     value={`₹${stats?.totalRevenue?.toLocaleString() || "0"}`}
-                    change="+12.4%"
-                    isPositive={true}
                     icon={DollarSign}
                 />
                 <MetricCard
                     title="PENDING PAYMENTS"
                     value={stats?.pendingPayments?.toString() || "0"}
-                    change="-2.1%"
-                    isPositive={false}
                     icon={Clock}
                 />
             </div>
@@ -380,14 +372,10 @@ export default function UserManagementPage() {
 function MetricCard({
     title,
     value,
-    change,
-    isPositive,
     icon: Icon
 }: {
     title: string;
     value: string;
-    change: string;
-    isPositive: boolean;
     icon: any
 }) {
     return (
@@ -397,15 +385,6 @@ function MetricCard({
                     <div className="w-12 h-12 bg-muted rounded-2xl flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                         <Icon className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
-                    <Badge variant="secondary" className={cn(
-                        "rounded-xl px-2.5 py-1 text-xs font-black gap-1 border-0 ring-1 ring-inset",
-                        isPositive
-                            ? "bg-primary/10 text-primary ring-primary/20"
-                            : "bg-destructive/10 text-destructive ring-destructive/20"
-                    )}>
-                        {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                        {change}
-                    </Badge>
                 </div>
                 <div className="space-y-1">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">{title}</p>

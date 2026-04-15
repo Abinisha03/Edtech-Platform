@@ -76,7 +76,9 @@ export function FeaturedCourses() {
                                         <h3 className="font-bold text-lg leading-tight mb-2 group-hover:text-primary transition-colors line-clamp-2">
                                             {course.title}
                                         </h3>
-                                        <p className="text-sm text-muted-foreground mb-3">{course.instructorName}</p>
+                                        {course.instructorName && (
+                                            <p className="text-sm text-muted-foreground mb-3">{course.instructorName}</p>
+                                        )}
                                         <div className="flex items-center gap-1.5">
                                             <span className="font-bold text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">New</span>
                                         </div>

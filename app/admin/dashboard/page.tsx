@@ -100,12 +100,8 @@ export default function AdminDashboardPage() {
                                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Users</p>
                                 <div className="flex items-baseline gap-2">
                                     <h3 className="text-3xl font-black text-foreground">{totalUsers.toLocaleString()}</h3>
-                                    <span className="flex items-center text-xs font-bold text-primary">
-                                        <TrendingUp className="w-3 h-3 mr-1" />
-                                        {userGrowth}%
-                                    </span>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground font-medium">vs last 30 days</p>
+                                <p className="text-[10px] text-muted-foreground font-medium">Total registered users</p>
                             </div>
                             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary transition-transform group-hover:scale-110">
                                 <Users className="w-6 h-6" />
@@ -121,11 +117,8 @@ export default function AdminDashboardPage() {
                                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Courses</p>
                                 <div className="flex items-baseline gap-2">
                                     <h3 className="text-3xl font-black text-foreground">{totalCourses}</h3>
-                                    <span className="flex items-center text-xs font-bold text-muted-foreground">
-                                        {courseGrowth}%
-                                    </span>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground font-medium">Consistent performance</p>
+                                <p className="text-[10px] text-muted-foreground font-medium">Total active courses</p>
                             </div>
                             <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-600 transition-transform group-hover:scale-110">
                                 <BookOpen className="w-6 h-6" />
@@ -140,11 +133,7 @@ export default function AdminDashboardPage() {
                             <div className="space-y-2">
                                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">System Activity</p>
                                 <div className="flex items-baseline gap-2">
-                                    <h3 className="text-3xl font-black text-foreground">{systemActivity}%</h3>
-                                    <span className="flex items-center text-xs font-bold text-primary">
-                                        <TrendingUp className="w-3 h-3 mr-1" />
-                                        0.1%
-                                    </span>
+                                    <h3 className="text-3xl font-black text-foreground">Active</h3>
                                 </div>
                                 <p className="text-[10px] text-muted-foreground font-medium">Real-time uptime monitoring</p>
                             </div>
@@ -185,13 +174,13 @@ export default function AdminDashboardPage() {
                                     tick={{ fontSize: 10, fontWeight: 600, fill: 'hsl(var(--muted-foreground))' }}
                                     dy={10}
                                 />
-                                <YAxis hide domain={[0, 100]} />
+                                <YAxis hide />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
                                 />
                                 <Line
                                     type="monotone"
-                                    dataKey="value"
+                                    dataKey="Interactions"
                                     stroke="oklch(var(--primary))"
                                     strokeWidth={4}
                                     dot={false}
@@ -205,17 +194,17 @@ export default function AdminDashboardPage() {
                 <Card className="border-none shadow-sm bg-card p-6">
                     <div className="flex justify-between items-center mb-8">
                         <div>
-                            <h3 className="text-lg font-bold text-foreground">Student Performance</h3>
-                            <p className="text-xs text-muted-foreground font-medium">Completion vs Quiz Scores</p>
+                            <h3 className="text-lg font-bold text-foreground">Course Performance</h3>
+                            <p className="text-xs text-muted-foreground font-medium">Enrollments vs Completions</p>
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase">Completion</span>
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase">Enrollments</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase">Avg Quiz</span>
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase">Completions</span>
                             </div>
                         </div>
                     </div>
@@ -230,12 +219,12 @@ export default function AdminDashboardPage() {
                                     tick={{ fontSize: 10, fontWeight: 600, fill: '#64748b' }}
                                     dy={10}
                                 />
-                                <YAxis hide domain={[0, 100]} />
+                                <YAxis hide />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))' }}
                                 />
-                                <Bar dataKey="completion" fill="oklch(var(--primary))" radius={[4, 4, 0, 0]} barSize={20} />
-                                <Bar dataKey="quiz" fill="oklch(var(--chart-2))" radius={[4, 4, 0, 0]} barSize={20} />
+                                <Bar dataKey="enrollments" fill="oklch(var(--primary))" radius={[4, 4, 0, 0]} barSize={20} />
+                                <Bar dataKey="completions" fill="oklch(var(--chart-2))" radius={[4, 4, 0, 0]} barSize={20} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
