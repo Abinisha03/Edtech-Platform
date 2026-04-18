@@ -13,7 +13,7 @@ import {
     UserX,
     ChevronLeft,
     ChevronRight,
-    DollarSign,
+    IndianRupee,
     Clock,
     X,
     ExternalLink,
@@ -136,7 +136,7 @@ export default function UserManagementPage() {
                 <MetricCard
                     title="TOTAL REVENUE"
                     value={`₹${stats?.totalRevenue?.toLocaleString() || "0"}`}
-                    icon={DollarSign}
+                    icon={IndianRupee}
                 />
                 <MetricCard
                     title="PENDING PAYMENTS"

@@ -62,8 +62,6 @@ export default function CreateCoursePage() {
                 category: "Development",
                 price: parseFloat(price) || 0,
                 status: status === "published" ? "published" : "draft",
-                modules: Math.floor(Math.random() * 12) + 1,
-                lessons: Math.floor(Math.random() * 50) + 10,
                 thumbnail: selectedImage || "https://images.unsplash.com/photo-1541462608143-67571c6738dd?q=80&w=200&auto=format&fit=crop"
             });
             router.push(`/admin/courses/${courseId}/success`);

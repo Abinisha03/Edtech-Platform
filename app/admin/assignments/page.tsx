@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
     Search,
     ChevronRight,
@@ -50,13 +51,24 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
 export default function AssignmentManagementPage() {
-    const [activeTab, setActiveTab] = useState<"assignments" | "quizzes">("assignments");
+    const searchParams = useSearchParams();
+    const tabParam = searchParams.get("tab");
+
+    const [activeTab, setActiveTab] = useState<"assignments" | "quizzes">(
+        tabParam === "quizzes" ? "quizzes" : "assignments"
+    );
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCourse, setSelectedCourse] = useState("all");
     const courses = useQuery(api.courses.listAll) || [];
     const [sortBy, setSortBy] = useState("newest");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
+
+    // Sync tab with URL param changes
+    useEffect(() => {
+        if (tabParam === "quizzes") setActiveTab("quizzes");
+        else if (tabParam === "assignments") setActiveTab("assignments");
+    }, [tabParam]);
 
     const rawAssignments = useQuery(api.assignments.get);
     const deleteAssignment = useMutation(api.assignments.deleteAssignment);
@@ -106,11 +118,19 @@ export default function AssignmentManagementPage() {
     const totalGraded = filteredData.reduce((acc, curr) => acc + (curr.gradedCount || 0), 0);
     const totalWeightedScore = filteredData.reduce((acc, curr) => acc + ((curr.averageScore || 0) * (curr.gradedCount || 0)), 0);
 
-    const calculatedAverage = totalGraded > 0
+    const hasGradedData = totalGraded > 0;
+    const calculatedAverage = hasGradedData
         ? (totalWeightedScore / totalGraded).toFixed(1)
         : "0";
 
-    const averageScore = `${calculatedAverage}%`;
+    // Submission rate: what % of max possible submissions are filled
+    const totalMax = filteredData.reduce((acc, curr) => acc + (curr.maxSubmissions || 0), 0);
+    const submissionRate = totalMax > 0
+        ? Math.round((totalSubmissions / totalMax) * 100)
+        : 0;
+
+    const averageScore = hasGradedData ? `${calculatedAverage}%` : `${submissionRate}%`;
+    const averageScoreLabel = hasGradedData ? "Average Score" : "Submission Rate";
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700 pb-12 font-inter">
@@ -152,13 +172,21 @@ export default function AssignmentManagementPage() {
                 <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
                     <CardContent className="p-8 space-y-4">
                         <div className="flex items-center justify-between">
-                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Average Score</p>
+                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{averageScoreLabel}</p>
                             <div className="p-2 bg-primary/10 text-primary rounded-xl">
                                 <GraduationCap className="w-5 h-5" />
                             </div>
                         </div>
                         <div className="space-y-1">
                             <h3 className="text-4xl font-black text-slate-900">{averageScore}</h3>
+                            <p className="text-[10px] font-semibold text-slate-400">
+                                {hasGradedData
+                                    ? `Based on ${totalGraded} graded submission${totalGraded !== 1 ? "s" : ""}`
+                                    : totalSubmissions > 0
+                                        ? `${totalSubmissions} submitted · awaiting review`
+                                        : "No submissions yet"
+                                }
+                            </p>
                         </div>
                     </CardContent>
                 </Card>

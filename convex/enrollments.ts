@@ -124,15 +124,21 @@ export const getMyEnrollments = query({
             .filter((q) => q.eq(q.field("email"), identity.email))
             .collect();
 
-        // Merge and deduplicate
         // Merge and deduplicate by courseId
         const all = [...newEnrollments, ...legacyEnrollments, ...emailEnrollments];
-        const uniqueCourseIds = new Set();
-        return all.filter(e => {
+        const uniqueCourseIds = new Set<string>();
+        const deduped = all.filter(e => {
             if (uniqueCourseIds.has(e.courseId)) return false;
             uniqueCourseIds.add(e.courseId);
             return true;
         });
+
+        // Build a set of all currently existing course IDs
+        const existingCourses = await ctx.db.query("courses").collect();
+        const existingCourseIds = new Set(existingCourses.map(c => String(c._id)));
+
+        // Only return enrollments whose course still exists
+        return deduped.filter(e => existingCourseIds.has(String(e.courseId)));
     },
 });
 
@@ -144,5 +150,24 @@ export const getEnrollmentCount = query({
             .withIndex("by_courseId", (q) => q.eq("courseId", args.courseId))
             .collect();
         return enrollments.length;
+    },
+});
+
+// Run this once to remove orphaned enrollments from deleted courses
+export const cleanupOrphanedEnrollments = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const allEnrollments = await ctx.db.query("enrollments").collect();
+        const existingCourses = await ctx.db.query("courses").collect();
+        const existingCourseIds = new Set(existingCourses.map(c => String(c._id)));
+
+        let deleted = 0;
+        for (const enrollment of allEnrollments) {
+            if (!existingCourseIds.has(String(enrollment.courseId))) {
+                await ctx.db.delete(enrollment._id);
+                deleted++;
+            }
+        }
+        return { deleted };
     },
 });

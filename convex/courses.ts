@@ -157,6 +157,35 @@ export const deleteCourse = mutation({
         const course = await ctx.db.get(args.id);
         if (!course) return;
 
+        // ── Cascade delete: enrollments for this course ──
+        const enrollments = await ctx.db
+            .query("enrollments")
+            .withIndex("by_courseId", (q) => q.eq("courseId", String(args.id)))
+            .collect();
+        await Promise.all(enrollments.map((e) => ctx.db.delete(e._id)));
+
+        // ── Cascade delete: materials (videos, pdfs, notes) ──
+        const materials = await ctx.db
+            .query("courseMaterials")
+            .withIndex("by_course", (q) => q.eq("courseId", args.id))
+            .collect();
+        await Promise.all(materials.map((m) => ctx.db.delete(m._id)));
+
+        // ── Cascade delete: modules ──
+        const modules = await ctx.db
+            .query("modules")
+            .withIndex("by_course", (q) => q.eq("courseId", args.id))
+            .collect();
+        await Promise.all(modules.map((m) => ctx.db.delete(m._id)));
+
+        // ── Cascade delete: assignments ──
+        const assignments = await ctx.db
+            .query("assignments")
+            .withIndex("by_course", (q) => q.eq("courseId", args.id))
+            .collect();
+        await Promise.all(assignments.map((a) => ctx.db.delete(a._id)));
+
+        // ── Delete the course itself ──
         await ctx.db.delete(args.id);
 
         // Log activity

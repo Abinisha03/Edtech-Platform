@@ -60,6 +60,30 @@ export default function CourseLearnPage() {
         setVideoError(false);
     }, [currentVideoId]);
 
+    // Suppress noisy Mux/HLS console errors that appear when a playback ID is invalid.
+    // These are expected when a video hasn't been fully processed by Mux yet.
+    useEffect(() => {
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const suppress = (fn: typeof console.error) => (...args: any[]) => {
+            const msg = args[0]?.toString?.() ?? "";
+            if (
+                msg.includes("getErrorFromHlsErrorData") ||
+                msg.includes("MediaError") ||
+                msg.includes("mux-player") ||
+                msg.includes("playback-id does not exist") ||
+                msg.includes("HLS")
+            ) return;
+            fn.apply(console, args);
+        };
+        console.error = suppress(originalError);
+        console.warn = suppress(originalWarn);
+        return () => {
+            console.error = originalError;
+            console.warn = originalWarn;
+        };
+    }, []);
+
     // Close sidebar on mobile by default
     useEffect(() => {
         const handleResize = () => {
@@ -107,9 +131,6 @@ export default function CourseLearnPage() {
     const isLastVideo = videoTutorials.length > 0 && currentVideoId === videoTutorials[videoTutorials.length - 1]._id;
 
     const resourcesByVideo = videoTutorials.reduce((acc: any, video: any) => {
-        // Aggregate resources by module if videoId link isn't explicit, or correct linking
-        // For now, assuming resources are linked by moduleId or videoId. 
-        // A simple fallback is filtering by moduleId if videoId is missing.
         acc[video._id] = allResources.filter((r: any) =>
             r.videoId === video._id || (r.moduleId && r.moduleId === video.moduleId)
         );
@@ -137,20 +158,21 @@ export default function CourseLearnPage() {
             assignments: assignments.filter((a: any) => a.moduleId === module._id)
         })).filter((m: any) => m.videos.length > 0 || m.resources.length > 0 || m.assignments.length > 0);
 
-        const uncategorizedVideos = videoTutorials.filter(v => !v.moduleId || !modules.some(m => m._id === v.moduleId));
-        const uncategorizedResources = allResources.filter(r => !r.moduleId || !modules.some(m => m._id === r.moduleId));
-        const uncategorizedAssignments = assignments.filter(a => !a.moduleId || !modules.some(m => m._id === a.moduleId));
-
-        // Removed General Content section 3 as requested
-
         return grouped;
     })();
 
     return (
         <div className="flex flex-col h-screen bg-[#f8fafc] font-sans overflow-hidden">
-            {/* Header - Minimalist */}
+            {/* Custom thin scrollbar for sidebar */}
+            <style>{`
+                .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+                .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+                .sidebar-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+                .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #c7d2e0; }
+            `}</style>
+
+            {/* ── Page Header ── */}
             <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-50 relative">
-                {/* ... header content ... */}
                 <div className="flex items-center gap-4">
                     <Link href={`/user/courses/${courseId}`} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600 hover:text-gray-900">
                         <ArrowLeft className="w-5 h-5" />
@@ -160,7 +182,6 @@ export default function CourseLearnPage() {
                         {course.title}
                     </h1>
                 </div>
-                {/* ... right side of header ... */}
                 <div className="flex items-center gap-3">
                     <div className="hidden md:flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
                         <Star className="w-4 h-4 text-yellow-500 fill-current" />
@@ -175,6 +196,7 @@ export default function CourseLearnPage() {
                     >
                         <Share2 className="w-4 h-4 mr-2" /> Share
                     </Button>
+                    {/* Mobile sidebar toggle */}
                     <Button
                         variant="ghost"
                         size="icon"
@@ -186,24 +208,22 @@ export default function CourseLearnPage() {
                 </div>
             </header>
 
-            {/* Main Content Layout */}
-            <div className="flex flex-1 overflow-hidden relative z-0">
-                {/* Left: Video & Content */}
+            {/* ── Main Body: left content + right sidebar ── */}
+            <div className="flex flex-1 overflow-hidden relative z-0" style={{ minHeight: 0 }}>
+
+                {/* ── LEFT: Video & Content (scrolls freely) ── */}
                 <div className="flex-1 flex flex-col overflow-y-auto bg-gray-50 scroll-smooth relative z-10">
                     <div className="max-w-7xl mx-auto w-full">
-                        {/* Video Player Section */}
+                        {/* Video Player */}
                         <div className="bg-black w-full aspect-video shadow-lg relative group z-20 overflow-hidden">
                             {currentVideo ? (
                                 (currentVideo.url) ? (
                                     <div className="w-full h-full relative">
-                                        {/* Loading Overlay (Only for ReactPlayer or initial load) */}
                                         {isVideoLoading && !currentVideo.url.includes("stream.mux.com") && (
                                             <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
                                                 <div className="w-12 h-12 border-4 border-white/30 border-t-white animate-spin rounded-full" />
                                             </div>
                                         )}
-
-                                        {/* Error State */}
                                         {videoError ? (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white z-20">
                                                 <p className="text-red-400 font-medium mb-4">Failed to load video</p>
@@ -232,13 +252,15 @@ export default function CourseLearnPage() {
                                                         video_title: currentVideo.title,
                                                         course_title: course.title,
                                                     }}
-                                                    onError={(e: any) => {
-                                                        console.warn("Mux Player Encountered Error:", e);
+                                                    onError={() => {
+                                                        // Playback ID is invalid or video not processed yet — show error UI
+                                                        setVideoError(true);
+                                                        setIsVideoLoading(false);
                                                     }}
                                                 />
                                             ) : (
                                                 <ReactPlayer
-                                                    key={currentVideoId} // Force remount on video change
+                                                    key={currentVideoId}
                                                     url={currentVideo.url}
                                                     controls
                                                     width="100%"
@@ -276,10 +298,7 @@ export default function CourseLearnPage() {
                             )}
                         </div>
 
-                        {/* ... tabs content ... */}
-
-
-                        {/* Tabs / Content Below Video */}
+                        {/* Below video: description + assignments + completion */}
                         <div className="p-6 md:p-8">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-gray-900">
@@ -288,9 +307,6 @@ export default function CourseLearnPage() {
                             </div>
 
                             <div className="space-y-8">
-
-
-                                {/* Description Section */}
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
                                     <div className="prose prose-blue max-w-none text-gray-600 leading-relaxed">
                                         <h3 className="text-lg font-bold text-gray-900 mb-2">About this lesson</h3>
@@ -310,30 +326,31 @@ export default function CourseLearnPage() {
                                             <div className="font-semibold text-gray-900 mb-1">Language</div>
                                             <p className="text-sm text-gray-500">English (US)</p>
                                         </div>
-{/* Assignments List */}
-{assignments && assignments.length > 0 && (
-<div className="col-span-1 md:col-span-3 mt-2">
-  <h3 className="text-lg font-bold text-gray-900 mb-3">Course Assignments</h3>
-  <ul className="space-y-3">
-    {assignments.map((task:any, idx:number)=>(
-      <li key={task._id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-        <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <ListChecks className="w-5 h-5" />
-            </div>
-            <div>
-                <p className="font-semibold text-gray-900">{task.title}</p>
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-0.5">{task.type || "Assignment"}</p>
-            </div>
-        </div>
-        <Button size="sm" asChild className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Link href={`/user/assignments/${task._id}`}>Start Now</Link>
-        </Button>
-      </li>
-    ))}
-  </ul>
-</div>
-)}
+
+                                        {/* Assignments List */}
+                                        {assignments && assignments.length > 0 && (
+                                            <div className="col-span-1 md:col-span-3 mt-2">
+                                                <h3 className="text-lg font-bold text-gray-900 mb-3">Course Assignments</h3>
+                                                <ul className="space-y-3">
+                                                    {assignments.map((task: any, idx: number) => (
+                                                        <li key={task._id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                                                    <ListChecks className="w-5 h-5" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-semibold text-gray-900">{task.title}</p>
+                                                                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mt-0.5">{task.type || "Assignment"}</p>
+                                                                </div>
+                                                            </div>
+                                                            <Button size="sm" asChild className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                                                <Link href={`/user/assignments/${task._id}`}>Start Now</Link>
+                                                            </Button>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {isLastVideo && (
@@ -348,7 +365,7 @@ export default function CourseLearnPage() {
                                                 onClick={() => setIsFeedbackModalOpen(true)}
                                             >
                                                 <Star className="w-5 h-5 mr-3 fill-current" />
-                                                Finish Course & Rate
+                                                Finish Course &amp; Rate
                                             </Button>
                                         </div>
                                     )}
@@ -358,169 +375,244 @@ export default function CourseLearnPage() {
                     </div>
                 </div>
 
-                {/* Right: Sidebar Navigation */}
-                {/* Desktop: Always visible, pushes content. Mobile: Absolute overlay */}
-                <div
-    className={cn(
-        "fixed inset-y-0 left-0 z-40 w-80 bg-white border-r border-gray-200 overflow-y-auto rounded-r-lg transform transition-transform duration-300 ease-in-out md:static md:-translate-x-0 flex flex-col",
-        sidebarOpen ? "translate-x-0 shadow-2xl md:shadow-none" : "-translate-x-full md:hidden"
-    )}
->
-                    <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-5 shrink-0">
-                        <h3 className="font-bold text-gray-900 text-lg">Course Content</h3>
-                        <Button variant="ghost" size="icon" className="md:hidden text-gray-500" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
-                            <X className="w-5 h-5" />
-                        </Button>
+                {/* ══════════════════════════════════════════════
+                    RIGHT SIDEBAR — 3-part layout
+                    1. Fixed header  (shrink-0, never scrolls)
+                    2. Scrollable content  (flex-1 min-h-0 overflow-y-auto)
+                    3. Fixed footer  (shrink-0, never scrolls)
+                ══════════════════════════════════════════════ */}
+                <aside
+                    className={cn(
+                        // Base structure
+                        "flex flex-col bg-white border-l border-gray-100 overflow-hidden",
+                        // Mobile: right-side fixed drawer
+                        "fixed inset-y-0 right-0 z-40 w-[22rem] shadow-2xl",
+                        "transform transition-transform duration-300 ease-in-out",
+                        // Desktop: static sticky, height = viewport minus page header (4rem = 64px)
+                        "md:relative md:inset-auto md:right-auto md:shadow-none md:z-0",
+                        "md:sticky md:top-0 md:h-[calc(100vh-4rem)] md:w-[22rem] md:shrink-0",
+                        "md:translate-x-0",
+                        // Mobile toggle
+                        sidebarOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
+                    )}
+                >
+                    {/* ── Part 1: Fixed Header ── */}
+                    <div className="shrink-0 bg-white border-b border-gray-100 px-5 py-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-gray-900 text-base tracking-tight leading-none">
+                                    Course Content
+                                </h3>
+                                <p className="text-[11px] text-gray-400 mt-1">
+                                    {contentByModule.length} section{contentByModule.length !== 1 ? "s" : ""} &bull; {videoTutorials.length} lesson{videoTutorials.length !== 1 ? "s" : ""}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {/* Rating chip — desktop only */}
+                                <div className="hidden md:flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full select-none">
+                                    <Star className="w-3 h-3 fill-current" />
+                                    <span>4.8</span>
+                                </div>
+                                {/* Mobile close */}
+                                <button
+                                    className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+                                    onClick={() => setSidebarOpen(false)}
+                                    aria-label="Close sidebar"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <ScrollArea className="flex-1 bg-white">
-                        <div className="pb-20">
-                            {contentByModule.map((section: any, sectionIdx: number) => (
-                                <div key={section._id} className="border-b border-gray-100 last:border-0">
-                                    <div className="bg-gray-50/80 backdrop-blur-sm p-4 sticky top-0 z-10 border-b border-gray-100">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <h4 className="font-bold text-gray-800 text-sm leading-tight">
+                    {/* ── Part 2: Scrollable content list (ONLY this area scrolls) ── */}
+                    <div className="flex-1 min-h-0 overflow-y-auto sidebar-scroll">
+                        {contentByModule.map((section: any, sectionIdx: number) => (
+                            <div key={section._id} className="border-b border-gray-100 last:border-0">
+
+                                {/* Sticky section header — stays at top of scroll container */}
+                                <div className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur-sm px-4 py-3 border-b border-gray-100">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-extrabold uppercase tracking-widest text-violet-500 mb-0.5">
                                                 Section {sectionIdx + 1}
+                                            </p>
+                                            <h4 className="text-[13px] font-semibold text-gray-800 leading-snug line-clamp-1">
+                                                {section.title}
                                             </h4>
-                                            <div className="flex gap-1">
-                                                {section.videos.length > 0 && (
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-white px-2 py-0.5 rounded-full border border-gray-200">
-                                                        {section.videos.length} Vids
-                                                    </span>
-                                                )}
-                                                {section.resources.length > 0 && (
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                                                        {section.resources.length} Docs
-                                                    </span>
-                                                )}
-                                                {section.assignments.filter((a: any) => a.type !== 'quiz').length > 0 && (
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                                                        {section.assignments.filter((a: any) => a.type !== 'quiz').length} Task
-                                                    </span>
-                                                )}
-                                                {section.assignments.filter((a: any) => a.type === 'quiz').length > 0 && (
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
-                                                        {section.assignments.filter((a: any) => a.type === 'quiz').length} Quiz
-                                                    </span>
-                                                )}
-                                            </div>
                                         </div>
-                                        <p className="text-xs text-gray-500 line-clamp-1 font-medium">{section.title}</p>
-                                    </div>
-                                    <div className="divide-y divide-gray-100">
-                                        {/* Videos */}
-                                        {section.videos.map((video: any, idx: number) => (
-                                            <button
-                                                key={video._id}
-                                                onClick={() => {
-                                                    setCurrentVideoId(video._id);
-                                                    if (window.innerWidth < 768) setSidebarOpen(false); // Close on mobile click
-                                                }}
-                                                className={cn(
-                                                    "w-full text-left p-4 flex gap-3 hover:bg-primary/5 transition-all duration-200 relative group",
-                                                    currentVideoId === video._id
-                                                        ? "bg-primary/10"
-                                                        : "bg-white"
-                                                )}
-                                            >
-                                                {/* Left current indicator line */}
-                                                {currentVideoId === video._id && (
-                                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
-                                                )}
-
-                                                <div className="mt-1">
-                                                    <div className={cn(
-                                                        "w-5 h-5 rounded border flex items-center justify-center transition-colors",
-                                                        currentVideoId === video._id ? "border-primary bg-primary text-white" : "border-gray-300 text-transparent"
-                                                    )}>
-                                                        {currentVideoId === video._id ? <Play className="w-2.5 h-2.5 fill-current" /> : <div className="w-2 h-2 rounded-full bg-gray-200" />}
-                                                    </div>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className={cn("text-sm font-medium mb-1 line-clamp-2 group-hover:text-primary transition-colors", currentVideoId === video._id ? "text-primary" : "text-gray-700")}>
-                                                        {idx + 1}. {video.title}
-                                                    </p>
-                                                    <div className="flex items-center gap-3 text-xs text-gray-500">
-                                                        <div className="flex items-center gap-1">
-                                                            <Video className="w-3 h-3" /> {video.duration || "5:00"}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        ))}
-
-                                        {/* Resources */}
-                                        {section.resources.map((res: any) => (
-                                            <a
-                                                key={res._id}
-                                                href={res.url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex items-center gap-3 p-4 hover:bg-blue-50/50 transition-all group w-full bg-blue-50/5"
-                                            >
-                                                <div className="w-5 h-5 flex items-center justify-center shrink-0 text-blue-500">
-                                                    <FileText className="w-4 h-4" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-700 truncate group-hover:text-blue-600">{res.title}</p>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase">Resource • {res.type}</p>
-                                                </div>
-                                                <Download className="w-4 h-4 text-gray-300 group-hover:text-blue-500" />
-                                            </a>
-                                        ))}
-
-                                        {/* Assignments */}
-                                        {section.assignments.filter((a: any) => a.type !== 'quiz').map((assign: any) => (
-                                            <Link
-                                                key={assign._id}
-                                                href={`/user/assignments/${assign._id}`}
-                                                className="flex items-center gap-3 p-4 hover:bg-emerald-50/50 transition-all group w-full bg-emerald-50/5"
-                                            >
-                                                <div className="w-5 h-5 flex items-center justify-center shrink-0 text-emerald-500">
-                                                    <File className="w-4 h-4" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-700 truncate group-hover:text-emerald-600">{assign.title}</p>
-                                                    <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase font-bold mt-0.5">
-                                                        <span className="text-emerald-500">{assign.type || "Assignment"}</span>
-                                                        {assign.dueDate && <span>• Due {new Date(assign.dueDate).toLocaleDateString()}</span>}
-                                                    </div>
-                                                </div>
-                                                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500" />
-                                            </Link>
-                                        ))}
-
-                                        {/* Quizzes */}
-                                        {section.assignments.filter((a: any) => a.type === 'quiz').map((assign: any) => (
-                                            <Link
-                                                key={assign._id}
-                                                href={`/user/quizzes/${assign._id}`}
-                                                className="flex items-center gap-3 p-4 hover:bg-purple-50/50 transition-all group w-full bg-purple-50/5"
-                                            >
-                                                <div className="w-5 h-5 flex items-center justify-center shrink-0 text-purple-500">
-                                                    <ListChecks className="w-4 h-4" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-700 truncate group-hover:text-purple-600">{assign.title}</p>
-                                                    <div className="flex items-center gap-2 text-[10px] text-gray-400 uppercase font-bold mt-0.5">
-                                                        <span className="text-purple-500">Quiz</span>
-                                                        {assign.dueDate && <span>• Due {new Date(assign.dueDate).toLocaleDateString()}</span>}
-                                                    </div>
-                                                </div>
-                                                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-purple-500" />
-                                            </Link>
-                                        ))}
+                                        <div className="flex flex-wrap gap-1 shrink-0 mt-0.5">
+                                            {section.videos.length > 0 && (
+                                                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 bg-white px-1.5 py-0.5 rounded-full border border-gray-200">
+                                                    {section.videos.length} Vid{section.videos.length > 1 ? "s" : ""}
+                                                </span>
+                                            )}
+                                            {section.resources.length > 0 && (
+                                                <span className="text-[9px] font-bold uppercase tracking-wider text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100">
+                                                    {section.resources.length} Doc{section.resources.length > 1 ? "s" : ""}
+                                                </span>
+                                            )}
+                                            {section.assignments.filter((a: any) => a.type !== "quiz").length > 0 && (
+                                                <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-100">
+                                                    {section.assignments.filter((a: any) => a.type !== "quiz").length} Task
+                                                </span>
+                                            )}
+                                            {section.assignments.filter((a: any) => a.type === "quiz").length > 0 && (
+                                                <span className="text-[9px] font-bold uppercase tracking-wider text-purple-500 bg-purple-50 px-1.5 py-0.5 rounded-full border border-purple-100">
+                                                    {section.assignments.filter((a: any) => a.type === "quiz").length} Quiz
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </div>
 
-                {/* Mobile Overlay for Sidebar */}
+                                {/* Section items */}
+                                <div>
+                                    {/* ── Videos ── */}
+                                    {section.videos.map((video: any, idx: number) => (
+                                        <button
+                                            key={video._id}
+                                            onClick={() => {
+                                                setCurrentVideoId(video._id);
+                                                if (window.innerWidth < 768) setSidebarOpen(false);
+                                            }}
+                                            className={cn(
+                                                "w-full text-left px-4 py-3.5 flex gap-3 transition-all duration-150 relative group border-b border-gray-50 last:border-0",
+                                                currentVideoId === video._id
+                                                    ? "bg-violet-50"
+                                                    : "bg-white hover:bg-gray-50/70"
+                                            )}
+                                        >
+                                            {/* Active left bar */}
+                                            {currentVideoId === video._id && (
+                                                <div className="absolute left-0 top-2 bottom-2 w-[3px] bg-violet-500 rounded-r-full" />
+                                            )}
+                                            {/* Icon */}
+                                            <div className="shrink-0 mt-0.5">
+                                                <div className={cn(
+                                                    "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-150",
+                                                    currentVideoId === video._id
+                                                        ? "bg-violet-500 text-white shadow-sm shadow-violet-200"
+                                                        : "bg-gray-100 text-gray-400 group-hover:bg-gray-200"
+                                                )}>
+                                                    <Play className="w-3 h-3 fill-current" />
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className={cn(
+                                                    "text-[13px] font-medium line-clamp-2 leading-snug transition-colors",
+                                                    currentVideoId === video._id
+                                                        ? "text-violet-700"
+                                                        : "text-gray-700 group-hover:text-gray-900"
+                                                )}>
+                                                    {idx + 1}. {video.title}
+                                                </p>
+                                                <div className="flex items-center gap-1.5 mt-1">
+                                                    <Video className="w-3 h-3 text-gray-300" />
+                                                    <span className="text-[11px] text-gray-400">{video.duration || "5:00"}</span>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+
+                                    {/* ── Resources / Notes ── */}
+                                    {section.resources.map((res: any) => (
+                                        <a
+                                            key={res._id}
+                                            href={res.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex items-center gap-3 px-4 py-3.5 hover:bg-sky-50/60 transition-all duration-150 group bg-white border-b border-gray-50 last:border-0"
+                                        >
+                                            <div className="shrink-0">
+                                                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors duration-150">
+                                                    <FileText className="w-3.5 h-3.5 text-blue-500" />
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[13px] font-medium text-gray-700 truncate group-hover:text-blue-600 transition-colors">{res.title}</p>
+                                                <p className="text-[11px] text-gray-400 mt-0.5 uppercase font-semibold tracking-wide">Resource &middot; {res.type}</p>
+                                            </div>
+                                            <Download className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 shrink-0 transition-colors" />
+                                        </a>
+                                    ))}
+
+                                    {/* ── Assignments ── */}
+                                    {section.assignments.filter((a: any) => a.type !== "quiz").map((assign: any) => (
+                                        <Link
+                                            key={assign._id}
+                                            href={`/user/assignments/${assign._id}`}
+                                            className="flex items-center gap-3 px-4 py-3.5 hover:bg-emerald-50/60 transition-all duration-150 group bg-white border-b border-gray-50 last:border-0"
+                                        >
+                                            <div className="shrink-0">
+                                                <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors duration-150">
+                                                    <File className="w-3.5 h-3.5 text-emerald-500" />
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[13px] font-medium text-gray-700 truncate group-hover:text-emerald-700 transition-colors">{assign.title}</p>
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <span className="text-[11px] text-emerald-500 font-semibold uppercase tracking-wide">{assign.type || "Assignment"}</span>
+                                                    {assign.dueDate && <span className="text-[11px] text-gray-400">&middot; Due {new Date(assign.dueDate).toLocaleDateString()}</span>}
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-emerald-500 shrink-0 transition-colors" />
+                                        </Link>
+                                    ))}
+
+                                    {/* ── Quizzes ── */}
+                                    {section.assignments.filter((a: any) => a.type === "quiz").map((assign: any) => (
+                                        <Link
+                                            key={assign._id}
+                                            href={`/user/quizzes/${assign._id}`}
+                                            className="flex items-center gap-3 px-4 py-3.5 hover:bg-purple-50/60 transition-all duration-150 group bg-white border-b border-gray-50 last:border-0"
+                                        >
+                                            <div className="shrink-0">
+                                                <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors duration-150">
+                                                    <ListChecks className="w-3.5 h-3.5 text-purple-500" />
+                                                </div>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[13px] font-medium text-gray-700 truncate group-hover:text-purple-700 transition-colors">{assign.title}</p>
+                                                <div className="flex items-center gap-1.5 mt-0.5">
+                                                    <span className="text-[11px] text-purple-500 font-semibold uppercase tracking-wide">Quiz</span>
+                                                    {assign.dueDate && <span className="text-[11px] text-gray-400">&middot; Due {new Date(assign.dueDate).toLocaleDateString()}</span>}
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-purple-500 shrink-0 transition-colors" />
+                                        </Link>
+                                    ))}
+                                </div>
+
+                            </div>
+                        ))}
+                        {/* Bottom breathing room */}
+                        <div className="h-4" />
+                    </div>
+
+                    {/* ── Part 3: Fixed Footer ── */}
+                    <div className="shrink-0 border-t border-gray-100 bg-white px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                                <p className="text-[12px] font-semibold text-gray-700 truncate">{course.title}</p>
+                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                    {videoTutorials.length} lesson{videoTutorials.length !== 1 ? "s" : ""} &bull; {allResources.length} resource{allResources.length !== 1 ? "s" : ""}
+                                </p>
+                            </div>
+                            <Link
+                                href={`/user/courses/${courseId}`}
+                                className="shrink-0 text-[11px] font-semibold text-violet-600 hover:text-violet-800 transition-colors whitespace-nowrap"
+                            >
+                                View Details
+                            </Link>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* Mobile backdrop */}
                 {sidebarOpen && (
                     <div
-                        className="fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm"
+                        className="fixed inset-0 bg-black/40 z-30 md:hidden backdrop-blur-[2px]"
                         onClick={() => setSidebarOpen(false)}
                     />
                 )}

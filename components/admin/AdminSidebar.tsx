@@ -12,19 +12,29 @@ import {
     GraduationCap,
     Download,
     X,
-    ChevronRight
+    ChevronDown,
+    ClipboardList,
+    HelpCircle,
 } from "lucide-react";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 const menuItems = [
     { label: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
     { label: "User Management", icon: Users, href: "/admin/users" },
     { label: "Course Management", icon: BookOpen, href: "/admin/courses" },
-
-    { label: "Assignment & Quizzes", icon: BarChart3, href: "/admin/assignments" },
+    {
+        label: "Assessment",
+        icon: BarChart3,
+        href: "/admin/assignments",
+        children: [
+            { label: "Assignment", icon: ClipboardList, href: "/admin/assignments?tab=assignments" },
+            { label: "Quiz", icon: HelpCircle, href: "/admin/assignments?tab=quizzes" },
+        ],
+    },
     { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 
@@ -36,6 +46,9 @@ interface AdminSidebarProps {
 export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
     const pathname = usePathname();
     const { user } = useUser();
+    const [assessmentOpen, setAssessmentOpen] = useState(
+        pathname?.startsWith("/admin/assignments") ?? false
+    );
 
     const handleLinkClick = () => {
         if (window.innerWidth < 768) {
@@ -69,6 +82,64 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
             <nav className="mt-8 px-4 flex-1 space-y-1">
                 {menuItems.map((item) => {
                     const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+                    const hasChildren = item.children && item.children.length > 0;
+
+                    if (hasChildren) {
+                        const isParentActive = pathname?.startsWith(item.href) ?? false;
+                        return (
+                            <div key={item.label}>
+                                {/* Parent toggle button */}
+                                <button
+                                    onClick={() => setAssessmentOpen((prev) => !prev)}
+                                    className={cn(
+                                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all group",
+                                        isParentActive
+                                            ? "bg-primary/10 text-primary"
+                                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    )}
+                                >
+                                    <item.icon className={cn(
+                                        "w-5 h-5 transition-colors shrink-0",
+                                        isParentActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                    )} />
+                                    <span className="flex-1 text-left">{item.label}</span>
+                                    <ChevronDown className={cn(
+                                        "w-4 h-4 shrink-0 transition-transform duration-200",
+                                        assessmentOpen ? "rotate-180" : ""
+                                    )} />
+                                </button>
+
+                                {/* Sub-items */}
+                                <div className={cn(
+                                    "overflow-hidden transition-all duration-200",
+                                    assessmentOpen ? "max-h-40 opacity-100 mt-1" : "max-h-0 opacity-0"
+                                )}>
+                                    {item.children!.map((child) => {
+                                        const isChildActive =
+                                            pathname === "/admin/assignments" &&
+                                            (child.href.includes("tab=assignments")
+                                                ? true // default tab
+                                                : false);
+                                        return (
+                                            <Link
+                                                key={child.label}
+                                                href={child.href}
+                                                onClick={handleLinkClick}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-4 py-2.5 ml-4 rounded-xl text-sm font-semibold transition-all group",
+                                                    "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                                )}
+                                            >
+                                                <child.icon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                                                <span>{child.label}</span>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    }
+
                     return (
                         <Link
                             key={item.label}
@@ -114,4 +185,3 @@ export function AdminSidebar({ isOpen, setIsOpen }: AdminSidebarProps) {
         </aside>
     );
 }
-

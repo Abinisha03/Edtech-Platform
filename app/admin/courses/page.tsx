@@ -39,45 +39,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-// Mock Data
-const initialCourses = [
-    {
-        id: "1",
-        title: "Advanced UI Design",
-        thumbnail: "https://images.unsplash.com/photo-1541462608143-67571c6738dd?q=80&w=200&auto=format&fit=crop",
-        modules: 12,
-        lessons: 48,
-        lastUpdated: "Oct 12, 2023",
-        status: "Published",
-    },
-    {
-        id: "2",
-        title: "Introduction to Python",
-        thumbnail: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=200&auto=format&fit=crop",
-        modules: 8,
-        lessons: 32,
-        lastUpdated: "Nov 02, 2023",
-        status: "Draft",
-    },
-    {
-        id: "3",
-        title: "Full-Stack Development",
-        thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=200&auto=format&fit=crop",
-        modules: 20,
-        lessons: 112,
-        lastUpdated: "Oct 29, 2023",
-        status: "Published",
-    },
-    {
-        id: "4",
-        title: "Digital Marketing 101",
-        thumbnail: "https://images.unsplash.com/photo-1533750349088-cd871a92f312?q=80&w=200&auto=format&fit=crop",
-        modules: 6,
-        lessons: 18,
-        lastUpdated: "Sept 15, 2023",
-        status: "Published",
-    }
-];
+
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -96,8 +58,6 @@ export default function CourseManagementPage() {
         id: c._id,
         title: c.title,
         thumbnail: c.thumbnail || "https://images.unsplash.com/photo-1541462608143-67571c6738dd?q=80&w=200&auto=format&fit=crop",
-        modules: c.modules || 0,
-        lessons: c.lessons || 0,
         lastUpdated: new Date(c._creationTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         status: c.status === "published" ? "Published" : "Draft",
     })) || [];
@@ -179,10 +139,7 @@ export default function CourseManagementPage() {
                                                 />
                                             </div>
                                             <div>
-                                                <p className="font-bold text-foreground text-base tracking-tight leading-none mb-1.5">{course.title}</p>
-                                                <p className="text-xs font-semibold text-muted-foreground">
-                                                    {course.modules} Modules • {course.lessons} Lessons
-                                                </p>
+                                                <p className="font-bold text-foreground text-base tracking-tight leading-none">{course.title}</p>
                                             </div>
                                         </div>
                                     </TableCell>
@@ -254,7 +211,7 @@ export default function CourseManagementPage() {
 
                 <div className="px-8 py-6 border-t border-border/50 flex items-center justify-between text-sm">
                     <p className="font-semibold text-muted-foreground tracking-tight">
-                        Showing <span className="text-foreground font-black">{(currentPage - 1) * 4 + 1}</span> to <span className="text-foreground font-black">{Math.min(currentPage * 4, 24)}</span> of <span className="text-foreground font-black">24</span> courses
+                        Showing <span className="text-foreground font-black">{courses.length}</span> course{courses.length !== 1 ? "s" : ""}
                     </p>
                     <div className="flex items-center gap-2">
                         <Button
